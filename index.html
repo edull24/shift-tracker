@@ -77,10 +77,21 @@
 
 		.players__table {
 			width: 100%;
+			counter-reset: player;
 		}
 
 		.players__player-header {
 			text-align: left;
+		}
+
+		.players__name::before {
+			counter-increment: player;
+			content: counter(player);
+			background-color: black;
+			color: white;
+			padding: 5px 8px;
+			margin-right: 5px;
+			font-size: 14px;
 		}
 
 		.players__forward-cnt,
@@ -178,11 +189,50 @@
 	<script>
 		let playerIdCnt = 0;
 		let playerIndex = 0;
-		const players = [];
 		const $addPlayerForm = $('.players__add-form');
 		const $addPlayerInput = $addPlayerForm.find('.players__player-input');
 		const $playersTableBody = $('.players__table-body');
 		const $shiftTableBody = $('.shift__table-body');
+
+		const Player = function(name) {
+
+			this.id = playerIdCnt++;
+			this.name = name;
+			this.forwardCnt = 0;
+			this.goalieCnt = 0;
+			this.goalieTimeStamp = 0;
+
+		};
+
+		const players = [
+			new Player('Logan'),
+			new Player('Liam'),
+			new Player('Landon'),
+			new Player('Gunner'),
+			new Player('Nico'),
+			new Player('Ryan'),
+			new Player('Bryce'),
+			new Player('Noah'),
+			new Player('Hudson'),
+			new Player('Gavin'),
+		];
+
+		const shuffle = (p) => {
+
+			let i = 0;
+			let j = 0;
+			let temp = null;
+
+			for (i = p.length - 1; i > 0; i -= 1) {
+
+				j = Math.floor(Math.random() * (i + 1));
+				temp = p[i];
+				p[i] = p[j];
+				p[j] = temp;
+
+			}
+
+		};
 
 		const addPlayer = (e) => {
 
@@ -196,16 +246,16 @@
 				return;
 			}
 
-			const player = {
-				id: playerIdCnt++,
-				name: $addPlayerInput.val(),
-				forwardCnt: 0,
-				goalieCnt: 0,
-				goalieTimeStamp: 0
-			};
+			const player = new Player($addPlayerInput.val());
 
 			players.push(player);
 			$addPlayerInput.val('');
+
+			addPlayerToDom(player);
+
+		};
+
+		const addPlayerToDom = (player) => {
 
 			$playersTableBody.append(
 				'<tr class="players__player" data-player-id="' + player.id + '">' +
@@ -321,6 +371,13 @@
 		$addPlayerForm.on('submit', addPlayer);
 		$playersTableBody.on('click', '.players__remove-btn', removePlayer);
 		$('.shift__next-btn').on('click', getPlayersForShift);
+
+		shuffle(players);
+		players.forEach((p) => {
+
+			addPlayerToDom(p);
+
+		});
 
 	</script>
 </body>
