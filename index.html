@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Shift Tracker</title>
+	<link rel="stylesheet" href="normalize.css">
+	<style>
+		html,
+		body {
+			min-height: 100%;
+		}
+
+		html {
+			box-sizing: border-box;
+			font-family: arial;
+		}
+
+		body {
+			background-image: url(ice.jpeg);
+			background-repeat: no-repeat;
+			background-size: cover;
+			display: flex;
+			justify-content: center;
+			align-items: flex-start;
+		}
+
+		*,
+		*::before,
+		*::after {
+			box-sizing: inherit;
+		}
+
+		h1,
+		h2 {
+			text-align: center;
+		}
+
+		table {
+			border-collapse: collapse;
+			max-width: 100%;
+		}
+
+		tbody tr:nth-child(odd) {
+			background-color: rgba(211, 211, 211, .5);
+		}
+
+		th,
+		td {
+			padding: 10px;
+		}
+
+		.main-container {
+			background-color: rgba(255, 255, 255, .8);
+			border: 20px solid transparent;
+			margin: 10px 0;
+			display: inline-block;
+			min-width: 75vw;
+			max-width: calc(100% - 20px);
+			overflow: scroll;
+		}
+
+		.main-title {
+			font-style: italic;
+			margin: 0;
+		}
+
+		.players,
+		.shift {
+			margin-top: 50px;
+		}
+
+		.table-container {
+			overflow: scroll;
+		}
+
+		.players__table {
+			width: 100%;
+		}
+
+		.players__player-header {
+			text-align: left;
+		}
+
+		.players__forward-cnt,
+		.players__goalie-cnt {
+			text-align: center;
+		}
+
+		.players__player-input {
+			padding: 4px 8px;
+			margin-right: 5px;
+		}
+
+		.shift__next-btn {
+			display: block;
+			margin: 0 auto;
+		}
+
+		.shift__table {
+			margin: 0 auto;
+			margin-top: 20px;
+		}
+
+		.btn {
+			border: none;
+			background-color: black;
+			color: white;
+			padding: 8px 16px;
+			cursor: pointer;
+		}
+	</style>
+</head>
+<body>
+	<main class="main-container">
+
+		<h1 class="main-title">Shift Tracker</h1>
+
+		<div class="players">
+
+			<h2>Players</h2>
+
+			<div class="table-container">
+
+				<table class="players__table">
+					<thead>
+						<tr>
+							<th class="players__player-header">Player</th>
+							<th>Forward</th>
+							<th>Goalie</th>
+						</tr>
+					</thead>
+					<tbody class="players__table-body">
+					</tbody>
+					<tfoot>
+						<tr>
+							<td colspan="4">
+								<form class="players__add-form">
+									<input type="text" class="players__player-input" autofocus>
+									<input type="submit" value="add" class="btn">
+								</form>
+							</td>
+						</tr>
+					</tfoot>
+				</table>
+
+			</div>
+
+		</div>
+
+		<div class="shift">
+
+			<h2>Shift</h2>
+
+			<button class="shift__next-btn btn">next</button>
+
+			<div class="table-container">
+
+				<table class="shift__table">
+					<thead>
+						<tr>
+							<th>Player</th>
+							<th>Position</th>
+						</tr>
+					</thead>
+					<tbody class="shift__table-body">
+					</tbody>
+				</table>
+
+			</div>
+
+		</div>
+
+	</main>
+
+	<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+	<script>
+		let playerIdCnt = 0;
+		let playerIndex = 0;
+		const players = [];
+		const $addPlayerForm = $('.players__add-form');
+		const $addPlayerInput = $addPlayerForm.find('.players__player-input');
+		const $playersTableBody = $('.players__table-body');
+		const $shiftTableBody = $('.shift__table-body');
+
+		const addPlayer = (e) => {
+
+			let name = $addPlayerInput.val().trim();
+
+			e.preventDefault();
+
+			if (!name.length) {
+				window.alert('Please enter a name!');
+				$addPlayerInput.focus();
+				return;
+			}
+
+			const player = {
+				id: playerIdCnt++,
+				name: $addPlayerInput.val(),
+				forwardCnt: 0,
+				goalieCnt: 0,
+				goalieTimeStamp: 0
+			};
+
+			players.push(player);
+			$addPlayerInput.val('');
+
+			$playersTableBody.append(
+				'<tr class="players__player" data-player-id="' + player.id + '">' +
+					'<td class="players__name">' + player.name + '</td>' +
+					'<td class="players__forward-cnt">' + player.forwardCnt + '</td>' +
+					'<td class="players__goalie-cnt">' + player.goalieCnt + '</td>' +
+					'<td><button class="players__remove-btn btn" data-player-id="' + player.id + '">remove</button></td>' +
+				'</tr>'
+			);
+
+		};
+
+		const removePlayer = function() {
+
+			const $btn = $(this);
+			const id = parseInt($btn.attr('data-player-id'), 10);
+			const $player = $playersTableBody.find('[data-player-id="' + id + '"]');
+
+			$player.remove();
+
+			players.forEach(function(player, i) {
+
+				if (player.id === id) {
+
+					players.splice(i, 1);
+
+				}
+
+			});
+
+			$addPlayerInput.focus();
+
+		};
+
+		const getPlayersForShift = () => {
+
+			const numPlayers = players.length;
+
+			if (!numPlayers) {
+				window.alert('Please add at least one player!');
+				$addPlayerInput.focus();
+				return;
+			}
+
+			$shiftTableBody.empty();
+
+			if (playerIndex > numPlayers - 1) {
+				playerIndex = 0;
+			}
+
+			// Get a batch of 4 players for this shift
+			let shiftPlayers = players.slice(playerIndex, playerIndex + 4);
+			playerIndex = playerIndex + 4;
+
+			if (shiftPlayers.length < 4 && numPlayers > 4) {
+
+				// We reached the end of the list, get more from the beginning
+				playerIndex = 4 - shiftPlayers.length;
+				shiftPlayers = shiftPlayers.concat(players.slice(0, playerIndex));
+
+			}
+
+			// Determine who has played goalie the least
+			shiftPlayers.sort((p1, p2) => {
+
+				if (p1.goalieCnt < p2.goalieCnt && p1.goalieTimeStamp < p2.goalieTimeStamp) {
+					return -1;
+				}
+
+				if (p1.goalieCnt > p2.goalieCnt && p1.goalieTimeStamp > p2.goalieTimeStamp) {
+					return 1;
+				}
+
+				return p1.goalieTimeStamp - p2.goalieTimeStamp;
+
+			});
+
+			// Make the first player the goalie for this shift
+			shiftPlayers[0].goalieTimeStamp = Date.now();
+			$playersTableBody.find('[data-player-id="' + shiftPlayers[0].id + '"] .players__goalie-cnt').html(++shiftPlayers[0].goalieCnt);
+			$shiftTableBody.append('<tr><td>' + shiftPlayers[0].name + '</td><td>Goalie</td></tr>');
+
+			if (shiftPlayers.length > 1) {
+
+				// Remove the player that we just made goalie
+				const tempPlayers = shiftPlayers.slice(1);
+
+				// Determine who has played forward the least
+				tempPlayers.sort((p1, p2) => {
+					return p1.forwardCnt - p2.forwardCnt;
+				});
+
+				// Make the first three players forwards
+				$playersTableBody.find('[data-player-id="' + tempPlayers[0].id + '"] .players__forward-cnt').html(++tempPlayers[0].forwardCnt);
+				$shiftTableBody.append('<tr><td>' + tempPlayers[0].name + '</td><td>Forward</td></tr>');
+
+				if (tempPlayers[1]) {
+
+					$playersTableBody.find('[data-player-id="' + tempPlayers[1].id + '"] .players__forward-cnt').html(++tempPlayers[1].forwardCnt);
+					$shiftTableBody.append('<tr><td>' + tempPlayers[1].name + '</td><td>Forward</td></tr>');
+
+				}
+
+				if (tempPlayers[2]) {
+
+					$playersTableBody.find('[data-player-id="' + tempPlayers[2].id + '"] .players__forward-cnt').html(++tempPlayers[2].forwardCnt);
+					$shiftTableBody.append('<tr><td>' + tempPlayers[2].name + '</td><td>Forward</td></tr>');
+
+				}
+
+			}
+
+		};
+
+		$addPlayerForm.on('submit', addPlayer);
+		$playersTableBody.on('click', '.players__remove-btn', removePlayer);
+		$('.shift__next-btn').on('click', getPlayersForShift);
+
+	</script>
+</body>
+</html>
